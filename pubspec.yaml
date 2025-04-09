@@ -13,6 +13,7 @@ dependencies:
   flutter_local_notifications: ^19.0.0
   geolocator: ^13.0.4
   just_audio: ^0.9.46
+  timezone: ^0.10.0
 
 dev_dependencies:
   flutter_lints: ^4.0.0
