@@ -1,10 +1,5 @@
-import 'dart:async';
-import 'dart:io';
-
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:azan_app/core/services/audio_service.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/data/latest.dart' as tz;
-import 'package:timezone/timezone.dart' as tz;
 import 'package:azan_app/core/services/prayer_time_service.dart';
 
 class NotificationService {
@@ -13,37 +8,22 @@ class NotificationService {
     return _instance;
   }
   NotificationService._internal();
-
-  final FlutterLocalNotificationsPlugin _notificationsPlugin =
-      FlutterLocalNotificationsPlugin();
-
-  final StreamController<NotificationResponse> selectNotificationStream =
-      StreamController<NotificationResponse>.broadcast();
+  final AwesomeNotifications _awesomeNotifications = AwesomeNotifications();
+  final String azanChannelKey = 'azan_channel';
 
   Future<void> init() async {
-    tz.initializeTimeZones();
-
-    //   final String? timeZoneName = await FlutterTimezone.getLocalTimezone();
-    // tz.setLocalLocation(tz.getLocation(timeZoneName!));
-
-    final String currentTimeZone = DateTime.now().timeZoneName;
-    tz.setLocalLocation(tz.getLocation(currentTimeZone));
-
-    const InitializationSettings initializationSettings =
-        InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-    );
-
-    await _notificationsPlugin.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: selectNotificationStream.add,
+    await _awesomeNotifications.initialize(
+      null,
+      [azanNotificationChannel()],
     );
     _isAndroidPermissionGranted().then((granted) {
       if (!granted) {
         _requestAndroidPermission().then((value) {
-          print('Notification permission granted');
-        }).catchError((error) {
-          print('Error requesting notification permission: $error');
+          if (value) {
+            print('Notification permission granted');
+          } else {
+            print('Notification permission denied');
+          }
         });
       }
     });
@@ -53,27 +33,47 @@ class NotificationService {
     final now = DateTime.now();
     // skip if time has passed
     if (time.isBefore(now)) return;
-    await _notificationsPlugin.zonedSchedule(
-      title.hashCode,
-      'Azan $title',
-      'title for $title prayer',
-      tz.TZDateTime.from(time, tz.local),
-      // tz.TZDateTime.now(tz.getLocation('Africa/Cairo'))
-      //     .add(const Duration(seconds: 3)),
-      _notificationDetails(),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: DateTimeComponents.time, // for daily repeat
+
+    bool isAllowed = await _awesomeNotifications.isNotificationAllowed();
+    if (!isAllowed) {
+      isAllowed =
+          await AwesomeNotifications().requestPermissionToSendNotifications();
+    }
+    if (!isAllowed) return;
+
+    await AwesomeNotifications().createNotification(
+      schedule: NotificationCalendar.fromDate(
+        date: time,
+        allowWhileIdle: true,
+        preciseAlarm: true,
+      ),
+      content: NotificationContent(
+        id: title.hashCode,
+        channelKey: azanChannelKey,
+        title: 'Azan $title',
+        body: 'Time for azan $title',
+        customSound: 'resource://raw/azan',
+      ),
     );
+
+    // await _notificationsPlugin.zonedSchedule(
+    //   title.hashCode,
+    //   'Azan $title',
+    //   'title for $title prayer',
+    //   tz.TZDateTime.from(time, tz.local),
+    //   // tz.TZDateTime.now(tz.getLocation('Africa/Cairo'))
+    //   //     .add(const Duration(seconds: 3)),
+    //   _notificationDetails(),
+    //   androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    //   matchDateTimeComponents: DateTimeComponents.time, // for daily repeat
+    // );
     print('Scheduled notification for $title at $time');
-    print(
-        'test ${tz.TZDateTime.from(time, tz.local).add(const Duration(seconds: 3))}');
+    print('time is ${NotificationCalendar.fromDate(date: time)}');
   }
 
   Future<void> scheduleNotifi() async {
-    // _notificationsPlugin.show(0, 'title', 'body', _notificationDetails());
     scheduleANotification(
         'AzanTest', DateTime.now().add(const Duration(seconds: 3)));
-    // _notificationsPlugin.zonedSchedule(0, 'title', 'body', tz.TZDateTime.from(DateTime.now().add(const Duration(seconds: 5)), tz.local), _notificationDetails('id', 'title', 'body'), androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle);
   }
 
   Future<void> scheduleAzanNotifications() async {
@@ -98,56 +98,32 @@ class NotificationService {
   }
 
   Future<void> cancelAzanNotifications() async {
-    Map<String, DateTime> prayerTimes =
-        await PrayerTimeService().getPrayerTimes();
-    for (var entry in prayerTimes.entries) {
-      _notificationsPlugin.cancel(entry.key.hashCode);
-    }
+    await _awesomeNotifications.cancelNotificationsByChannelKey(azanChannelKey);
   }
 
   Future<void> cancelAllNotifications() async {
-    await _notificationsPlugin.cancelAll();
+    await _awesomeNotifications.cancelAll();
   }
 
-  NotificationDetails _notificationDetails() {
-    String channelId = 'azan_channel';
+  NotificationChannel azanNotificationChannel() {
     String channelTitle = 'Azan Notifications';
     String channelDescription = 'Channel for Azan notifications';
-    return NotificationDetails(
-      android: AndroidNotificationDetails(
-        channelId,
-        channelTitle,
-        channelDescription: channelDescription,
-        importance: Importance.max,
-        priority: Priority.high,
-        playSound: true,
-        // sound: const RawResourceAndroidNotificationSound('azan_sound'),
-        enableVibration: true,
-        // vibrationPattern: Int64List.fromList([0, 1000, 500, 1000])
-      ),
+    return NotificationChannel(
+      channelKey: azanChannelKey,
+      channelName: channelTitle,
+      channelDescription: channelDescription,
+      importance: NotificationImportance.Max,
+      defaultPrivacy: NotificationPrivacy.Public,
+      playSound: true,
+      soundSource: 'resource://raw/azan',
     );
   }
 
   Future<bool> _isAndroidPermissionGranted() async {
-    return await _notificationsPlugin
-            .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin>()
-            ?.areNotificationsEnabled() ??
-        false;
+    return await _awesomeNotifications.isNotificationAllowed();
   }
 
-  Future<void> _requestAndroidPermission() async {
-    final androidImplementation =
-        _notificationsPlugin.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
-    if (androidImplementation != null) {
-      final bool? granted =
-          await androidImplementation?.requestNotificationsPermission();
-      if (granted != null && granted) {
-        throw Exception('Notification permission not granted');
-      }
-    } else {
-      throw Exception('Android implementation not found');
-    }
+  Future<bool> _requestAndroidPermission() async {
+    return await _awesomeNotifications.requestPermissionToSendNotifications();
   }
 }
