@@ -7,4 +7,10 @@ class AudioService {
     await player.setAsset(azanSoundPath);
     await player.play();
   }
+  Future<void> stopAzan() async {
+    await player.stop();
+  }
+  Future<void> dispose() async {
+    await player.dispose();
+  }
 }

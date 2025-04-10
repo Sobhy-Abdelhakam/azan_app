@@ -1,20 +1,39 @@
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:azan_app/core/services/notification_service.dart';
 import 'package:azan_app/core/services/prayer_time_service.dart';
+import 'package:azan_app/screens/azan_screen.dart';
 import 'package:flutter/material.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService().init();
+  AwesomeNotifications().setListeners(
+    onActionReceivedMethod: (receivedAction) async {
+      final context = MyApp.navigatorKey.currentContext;
+      if (context != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AzanScreen(
+              prayerName: receivedAction.title ?? 'Azan',
+            ),
+          ),
+        );
+      }
+    },
+  );
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+  static final navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Azan App',
+      navigatorKey: navigatorKey,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,

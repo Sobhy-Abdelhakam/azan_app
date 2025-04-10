@@ -1,5 +1,6 @@
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:azan_app/core/services/prayer_time_service.dart';
+import 'package:flutter/material.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -11,21 +12,21 @@ class NotificationService {
   final String azanChannelKey = 'azan_channel';
 
   Future<void> init() async {
-    await _awesomeNotifications.initialize(
-      null,
-      [azanNotificationChannel()],
-    );
-    _isAndroidPermissionGranted().then((granted) {
-      if (!granted) {
-        _requestAndroidPermission().then((value) {
-          if (value) {
-            print('Notification permission granted');
-          } else {
-            print('Notification permission denied');
-          }
-        });
-      }
-    });
+    bool granted = await _isAndroidPermissionGranted();
+
+    if (!granted) {
+      granted = await _requestAndroidPermission();
+    }
+    if (granted) {
+      print('Notification permission granted');
+      await _awesomeNotifications.initialize(
+        null,
+        [azanNotificationChannel()],
+        debug: true,
+      );
+    } else {
+      print('Notification permission denied');
+    }
   }
 
   Future<void> scheduleANotification(String title, DateTime time) async {
@@ -33,25 +34,24 @@ class NotificationService {
     // skip if time has passed
     if (time.isBefore(now)) return;
 
-    bool isAllowed = await _awesomeNotifications.isNotificationAllowed();
-    if (!isAllowed) {
-      isAllowed =
-          await AwesomeNotifications().requestPermissionToSendNotifications();
-    }
+    bool isAllowed = await _isAndroidPermissionGranted();
+    if (!isAllowed) isAllowed = await _requestAndroidPermission();
     if (!isAllowed) return;
 
     await AwesomeNotifications().createNotification(
-      schedule: NotificationCalendar.fromDate(
-        date: time,
-        allowWhileIdle: true,
-      ),
       content: NotificationContent(
         id: title.hashCode,
         channelKey: azanChannelKey,
         title: 'Azan $title',
-        body: 'Time for azan $title',
-        fullScreenIntent: true,
+        body: '$title Prayer is now!',
+        fullScreenIntent: true, // Shows overlay even if locked
         wakeUpScreen: true,
+        locked: true, // prevents dismissal without action
+        criticalAlert: true,
+      ),
+      schedule: NotificationCalendar.fromDate(
+        date: time,
+        allowWhileIdle: true,
       ),
     );
     print('Scheduled notification for $title at $time');
@@ -86,10 +86,15 @@ class NotificationService {
       channelKey: azanChannelKey,
       channelName: channelTitle,
       channelDescription: channelDescription,
-      importance: NotificationImportance.High,
+      importance: NotificationImportance.Max,
       defaultPrivacy: NotificationPrivacy.Public,
+      locked: true,
       playSound: true,
       soundSource: 'resource://raw/res_azan',
+      defaultColor: Colors.green,
+      ledColor: Colors.white,
+      criticalAlerts: true,
+      channelShowBadge: true,
     );
   }
 
