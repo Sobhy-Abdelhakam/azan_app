@@ -1,6 +1,7 @@
 import 'package:azan_app/core/services/notification_service.dart';
 import 'package:azan_app/core/services/prayer_time_service.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -10,13 +11,11 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-  static final navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Azan App',
-      navigatorKey: navigatorKey,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
@@ -35,7 +34,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  Map<String, DateTime> _prayerTimes = {};
+  late Future<Map<String, DateTime>> _prayerTimes;
 
   @override
   void initState() {
@@ -44,10 +43,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _loadPrayerTimes() async {
-    Map<String, DateTime> times = await PrayerTimeService().getPrayerTimes();
-    print('prayer times: $times');
-    setState(() => _prayerTimes = times);
-    // await NotificationService().scheduleAzanNotifications();
+    _prayerTimes = PrayerTimeService().getPrayerTimes();
+    NotificationService().scheduleAzanNotifications();
   }
 
   @override
@@ -56,29 +53,57 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              // Navigate to settings page
+            },
+          )
+        ],
       ),
-      body: _prayerTimes.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
+      body: FutureBuilder<Map<String, DateTime>>(
+        future: _prayerTimes,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return const Center(child: Text('Error loading prayer times.'));
+          }
+          final prayerTimes = snapshot.data!;
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
               children: [
+                const Text(
+                  'Azan Times',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
                 Expanded(
-                  child: ListView(
-                    children: _prayerTimes.entries.map((entry) {
-                      return ListTile(
-                        title: Text(entry.key,
-                            style: const TextStyle(fontSize: 20)),
-                        subtitle: Text(entry.value.toLocal().toString()),
+                  child: ListView.separated(
+                    itemCount: prayerTimes.length,
+                    separatorBuilder: (_, __) => const Divider(),
+                    itemBuilder: (context, index) {
+                      final name = prayerTimes.keys.elementAt(index);
+                      final time = prayerTimes[name]!;
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(name, style: const TextStyle(fontSize: 18)),
+                          Text(DateFormat('hh:mm a').format(time),
+                              style: const TextStyle(fontSize: 18)),
+                        ],
                       );
-                    }).toList(),
+                    },
                   ),
                 ),
-                ElevatedButton(
-                    onPressed: () async {
-                      await NotificationService().scheduleNotifi();
-                    },
-                    child: const Text("Click"))
               ],
             ),
+          );
+        },
+      ),
     );
   }
 }

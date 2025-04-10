@@ -4,39 +4,30 @@ import 'package:flutter/material.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
-  factory NotificationService() {
-    return _instance;
-  }
+  factory NotificationService() => _instance;
   NotificationService._internal();
+
   final AwesomeNotifications _awesomeNotifications = AwesomeNotifications();
   final String azanChannelKey = 'azan_channel';
 
   Future<void> init() async {
-    bool granted = await _isAndroidPermissionGranted();
+    bool granted = await _awesomeNotifications.isNotificationAllowed();
 
     if (!granted) {
-      granted = await _requestAndroidPermission();
+      granted = await _awesomeNotifications.requestPermissionToSendNotifications();
     }
     if (granted) {
-      print('Notification permission granted');
       await _awesomeNotifications.initialize(
         null,
         [azanNotificationChannel()],
         debug: true,
       );
-    } else {
-      print('Notification permission denied');
     }
   }
 
   Future<void> scheduleANotification(String title, DateTime time) async {
-    final now = DateTime.now();
     // skip if time has passed
-    if (time.isBefore(now)) return;
-
-    bool isAllowed = await _isAndroidPermissionGranted();
-    if (!isAllowed) isAllowed = await _requestAndroidPermission();
-    if (!isAllowed) return;
+    if (time.isBefore(DateTime.now())) return;
 
     await AwesomeNotifications().createNotification(
       content: NotificationContent(
@@ -54,13 +45,6 @@ class NotificationService {
         allowWhileIdle: true,
       ),
     );
-    print('Scheduled notification for $title at $time');
-    print('time is ${NotificationCalendar.fromDate(date: time)}');
-  }
-
-  Future<void> scheduleNotifi() async {
-    scheduleANotification(
-        'AzanTest', DateTime.now().add(const Duration(seconds: 3)));
   }
 
   Future<void> scheduleAzanNotifications() async {
@@ -75,18 +59,12 @@ class NotificationService {
     await _awesomeNotifications.cancelNotificationsByChannelKey(azanChannelKey);
   }
 
-  Future<void> cancelAllNotifications() async {
-    await _awesomeNotifications.cancelAll();
-  }
-
   NotificationChannel azanNotificationChannel() {
-    String channelTitle = 'Azan Notifications';
-    String channelDescription = 'Channel for Azan notifications';
     return NotificationChannel(
       channelKey: azanChannelKey,
-      channelName: channelTitle,
-      channelDescription: channelDescription,
-      importance: NotificationImportance.Max,
+      channelName: 'Azan Notifications',
+      channelDescription: 'Channel for Azan notifications',
+      importance: NotificationImportance.High,
       defaultPrivacy: NotificationPrivacy.Public,
       locked: true,
       playSound: true,
@@ -96,13 +74,5 @@ class NotificationService {
       criticalAlerts: true,
       channelShowBadge: true,
     );
-  }
-
-  Future<bool> _isAndroidPermissionGranted() async {
-    return await _awesomeNotifications.isNotificationAllowed();
-  }
-
-  Future<bool> _requestAndroidPermission() async {
-    return await _awesomeNotifications.requestPermissionToSendNotifications();
   }
 }
