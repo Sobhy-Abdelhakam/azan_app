@@ -1,5 +1,4 @@
 import 'package:awesome_notifications/awesome_notifications.dart';
-import 'package:azan_app/core/services/audio_service.dart';
 import 'package:azan_app/core/services/prayer_time_service.dart';
 
 class NotificationService {
@@ -45,28 +44,16 @@ class NotificationService {
       schedule: NotificationCalendar.fromDate(
         date: time,
         allowWhileIdle: true,
-        preciseAlarm: true,
       ),
       content: NotificationContent(
         id: title.hashCode,
         channelKey: azanChannelKey,
         title: 'Azan $title',
         body: 'Time for azan $title',
-        customSound: 'resource://raw/azan',
+        fullScreenIntent: true,
+        wakeUpScreen: true,
       ),
     );
-
-    // await _notificationsPlugin.zonedSchedule(
-    //   title.hashCode,
-    //   'Azan $title',
-    //   'title for $title prayer',
-    //   tz.TZDateTime.from(time, tz.local),
-    //   // tz.TZDateTime.now(tz.getLocation('Africa/Cairo'))
-    //   //     .add(const Duration(seconds: 3)),
-    //   _notificationDetails(),
-    //   androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-    //   matchDateTimeComponents: DateTimeComponents.time, // for daily repeat
-    // );
     print('Scheduled notification for $title at $time');
     print('time is ${NotificationCalendar.fromDate(date: time)}');
   }
@@ -81,19 +68,6 @@ class NotificationService {
         await PrayerTimeService().getPrayerTimes();
     for (var entry in prayerTimes.entries) {
       scheduleANotification(entry.key, entry.value);
-      // if (entry.value.isBefore(DateTime.now())) {
-      //   continue;
-      // }
-      // await _notificationsPlugin.zonedSchedule(
-      //   entry.key.hashCode,
-      //   'Azan ${entry.key}',
-      //   'Time for azan ${entry.key}',
-      //   tz.TZDateTime.from(entry.value, tz.local),
-      //   notificationDetails,
-      //   matchDateTimeComponents: DateTimeComponents.time, // for daily repeat
-      //   androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      // );
-      // print('Scheduled notification for ${entry.key} at ${entry.value}');
     }
   }
 
@@ -112,10 +86,10 @@ class NotificationService {
       channelKey: azanChannelKey,
       channelName: channelTitle,
       channelDescription: channelDescription,
-      importance: NotificationImportance.Max,
+      importance: NotificationImportance.High,
       defaultPrivacy: NotificationPrivacy.Public,
       playSound: true,
-      soundSource: 'resource://raw/azan',
+      soundSource: 'resource://raw/res_azan',
     );
   }
 
