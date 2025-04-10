@@ -7,6 +7,7 @@ class LocationService {
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
+      Geolocator.openLocationSettings();
       return Future.error('Location services are disabled');
     }
 
