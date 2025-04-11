@@ -49,61 +49,79 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              // Navigate to settings page
-            },
-          )
-        ],
-      ),
-      body: FutureBuilder<Map<String, DateTime>>(
-        future: _prayerTimes,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return const Center(child: Text('Error loading prayer times.'));
-          }
-          final prayerTimes = snapshot.data!;
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                const Text(
-                  'Azan Times',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: ListView.separated(
-                    itemCount: prayerTimes.length,
-                    separatorBuilder: (_, __) => const Divider(),
-                    itemBuilder: (context, index) {
-                      final name = prayerTimes.keys.elementAt(index);
-                      final time = prayerTimes[name]!;
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(name, style: const TextStyle(fontSize: 18)),
-                          Text(DateFormat('hh:mm a').format(time),
-                              style: const TextStyle(fontSize: 18)),
-                        ],
-                      );
-                    },
+    return Stack(
+      children: [
+        Image.asset(
+          'assets/images/mosque.jpg',
+          height: MediaQuery.of(context).size.height,
+          width: MediaQuery.of(context).size.width,
+          fit: BoxFit.cover,
+        ),
+        Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            backgroundColor: Colors.white.withAlpha(100),
+            elevation: 0,
+            title: Text(widget.title),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () {
+                  // Navigate to settings page
+                },
+              )
+            ],
+          ),
+          body: FutureBuilder<Map<String, DateTime>>(
+            future: _prayerTimes,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return const Center(child: Text('Error loading prayer times.'));
+              }
+              final prayerTimes = snapshot.data!;
+              return Center(
+                child: Card(
+                  elevation: 4,
+                  color: Colors.white.withAlpha(100),
+                  margin: const EdgeInsets.all(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: ListView.separated(
+                      itemCount: prayerTimes.length,
+                      shrinkWrap: true,
+                      separatorBuilder: (_, __) => const Divider(),
+                      itemBuilder: (context, index) {
+                        final name = prayerTimes.keys.elementAt(index);
+                        final time = prayerTimes[name]!;
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              name,
+                              style: const TextStyle(
+                                  fontSize: 18, color: Colors.black),
+                            ),
+                            Text(
+                              DateFormat('hh:mm a').format(time),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                   ),
                 ),
-              ],
-            ),
-          );
-        },
-      ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
