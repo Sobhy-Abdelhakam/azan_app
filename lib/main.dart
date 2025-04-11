@@ -1,5 +1,6 @@
 import 'package:azan_app/core/services/notification_service.dart';
 import 'package:azan_app/core/services/prayer_time_service.dart';
+import 'package:azan_app/screens/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -68,6 +69,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 icon: const Icon(Icons.settings),
                 onPressed: () {
                   // Navigate to settings page
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                  );
                 },
               )
             ],
