@@ -1,5 +1,6 @@
 import 'package:azan_app/core/services/notification_service.dart';
 import 'package:azan_app/core/services/prayer_time_service.dart';
+import 'package:azan_app/core/services/settings_service.dart';
 import 'package:azan_app/screens/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -44,7 +45,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _loadPrayerTimes() async {
-    _prayerTimes = PrayerTimeService().getPrayerTimes();
+    final settings = await SettingsService().loadSettings();
+    _prayerTimes = PrayerTimeService(settings: settings).getPrayerTimes();
     NotificationService().scheduleAzanNotifications();
   }
 

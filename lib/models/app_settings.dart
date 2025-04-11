@@ -47,7 +47,7 @@ enum CalculationMethodOption {
   muslimWorldLeague,
   egyptian,
   karachi,
-  other,
+  ummAlQura,
 }
 
 enum LocationType {
