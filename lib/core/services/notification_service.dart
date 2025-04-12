@@ -1,26 +1,21 @@
 import 'package:awesome_notifications/awesome_notifications.dart';
-import 'package:azan_app/core/services/prayer_time_service.dart';
 import 'package:azan_app/models/app_settings.dart';
 import 'package:flutter/material.dart';
 
 class NotificationService {
-  static final NotificationService _instance = NotificationService._internal();
-  factory NotificationService() => _instance;
-  NotificationService._internal();
+  final AppSettings _settings;
 
   final AwesomeNotifications _awesomeNotifications = AwesomeNotifications();
   final String azanChannelKey = 'azan_channel';
-  AppSettings _settings = AppSettings.defaultSettings();
-  void updateSettings(AppSettings settings) {
-    _settings = settings;
-  }
+
+  NotificationService({required AppSettings settings}) : _settings = settings;
+
+  // void updateSettings(AppSettings settings) {
+  //   _settings = settings;
+  // }
 
   Future<void> init() async {
-    bool granted = await _awesomeNotifications.isNotificationAllowed();
-
-    if (!granted) {
-      granted = await _awesomeNotifications.requestPermissionToSendNotifications();
-    }
+    bool granted = await _ensurePermissions();
     if (granted) {
       await _awesomeNotifications.initialize(
         null,
@@ -54,15 +49,14 @@ class NotificationService {
     );
   }
 
-  Future<void> scheduleAzanNotifications() async {
-    if (!_settings.notificationsEnabled) {
-      print('Notifications are disabled in settings');
-      return;
-    }
+  Future<void> scheduleAzanNotifications(Map<String, DateTime> prayerTimes) async {
+    if (!_settings.notificationsEnabled) return;
 
-    Map<String, DateTime> prayerTimes =
-        await PrayerTimeService(settings: _settings).getPrayerTimes();
-    for (var entry in prayerTimes.entries) {
+    await cancelAzanNotifications();
+    bool granted = await _ensurePermissions();
+    if (!granted) return;
+
+    for (final entry in prayerTimes.entries) {
       scheduleANotification(entry.key, entry.value);
     }
   }
@@ -86,5 +80,13 @@ class NotificationService {
       criticalAlerts: true,
       channelShowBadge: true,
     );
+  }
+
+  Future<bool> _ensurePermissions() async {
+    bool isGranted = await _awesomeNotifications.isNotificationAllowed();
+    if (!isGranted) {
+      isGranted = await _awesomeNotifications.requestPermissionToSendNotifications();
+    }
+    return isGranted;
   }
 }

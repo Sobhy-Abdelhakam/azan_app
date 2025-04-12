@@ -1,10 +1,11 @@
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
 class LocationService {
   Future<Position> getUserLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      Geolocator.openLocationSettings();
+      await Geolocator.openLocationSettings();
       return Future.error('Location services are disabled');
     }
 
@@ -22,5 +23,10 @@ class LocationService {
     }
     
     return await Geolocator.getCurrentPosition();
+  }
+
+  Future<Placemark> getPlacemark(double lat, double lng) async {
+    List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng);
+    return placemarks.first;
   }
 }

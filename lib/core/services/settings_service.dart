@@ -30,4 +30,9 @@ class SettingsService {
     await prefs.setString(_manualCityKey, settings.manualCity);
     await prefs.setString(_manualCountryKey, settings.manualCountry);
   }
+
+  Future<void> resetSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+  }
 }

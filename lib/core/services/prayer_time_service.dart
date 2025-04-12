@@ -2,35 +2,22 @@ import 'package:adhan_dart/adhan_dart.dart';
 import 'package:azan_app/core/services/location_service.dart';
 import 'package:azan_app/models/app_settings.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:geolocator/geolocator.dart';
 
 class PrayerTimeService {
   // this class is responsible for calculating prayer times based on the user's location
   final AppSettings settings;
+  final LocationService locationService;
 
-  PrayerTimeService({required this.settings});
+  PrayerTimeService({required this.settings, required this.locationService});
 
-  Future<Map<String, DateTime>> getPrayerTimes() async {
-    Coordinates coordinates;
-    
-    if (settings.locationType == LocationType.manual) {
-      coordinates = await _getManualCoordinates();
-    } else {
-      Position position = await LocationService().getUserLocation();
-      coordinates = Coordinates(position.latitude, position.longitude);
-      final test = await placemarkFromCoordinates(position.latitude, position.longitude);
-      print('${test[0].locality}, ${test[0].country}');
-    }
-
+  Future<Map<String, DateTime>> getPrayerTimes() async {    
+    final coordinates = await _getCoordinates();
     CalculationParameters params = _getCalculationParameters(settings.calculationMethod);
-
-    PrayerTimes prayerTimes = PrayerTimes(
+    final prayerTimes = PrayerTimes(
       coordinates: coordinates,
       calculationParameters: params,
       date: DateTime.now(),
     );
-
-    
 
     return {
       'Fajr': prayerTimes.fajr!,
@@ -41,6 +28,17 @@ class PrayerTimeService {
     };
   }
 
+  Future<Coordinates> _getCoordinates() async {
+    if (settings.locationType == LocationType.manual) {
+      return await _getManualCoordinates();
+    }
+    return await _getCurrentCoordinates();
+  }
+  Future<Coordinates> _getCurrentCoordinates() async {
+    final position = await LocationService().getUserLocation();
+    return Coordinates(position.latitude, position.longitude);
+  }
+
   Future<Coordinates> _getManualCoordinates() async {
     try {
       final locations = await locationFromAddress(
@@ -49,7 +47,7 @@ class PrayerTimeService {
       final loc = locations.first;
       return Coordinates(loc.latitude, loc.longitude);
     } catch (e) {
-      print('Failed to get manual location, using Mecca fallback. Error: $e');
+      print('Failed to get manual location, using Cairo fallback. Error: $e');
       return Coordinates(29.95375640, 31.53700030); // Cairo
     }
   }
