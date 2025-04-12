@@ -1,6 +1,7 @@
 import 'package:azan_app/core/services/settings_service.dart';
 import 'package:azan_app/models/app_settings.dart';
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -11,11 +12,30 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _service = SettingsService();
-  late AppSettings _settings;
+  AppSettings? _settings;
   bool loading = true;
 
   final _cityController = TextEditingController();
   final _countryController = TextEditingController();
+
+  final AudioPlayer _player = AudioPlayer();
+  bool isPlaying = false;
+  Future<void> _playAzan() async {
+    try {
+      if (isPlaying) {
+        await _player.stop();
+      } else {
+        await _player.setAsset('assets/sounds/azan.mp3');
+        await _player.play();
+      }
+
+      setState(() {
+        isPlaying = !isPlaying;
+      });
+    } catch (e) {
+      print("Error playing audio: $e");
+    }
+  }
 
   @override
   void initState() {
@@ -25,17 +45,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadSettings() async {
     _settings = await _service.loadSettings();
-    _cityController.text = _settings.manualCity;
-    _countryController.text = _settings.manualCountry;
+    _cityController.text = _settings!.manualCity;
+    _countryController.text = _settings!.manualCountry;
     setState(() => loading = false);
   }
 
   void _save() async {
     final updated = AppSettings(
-      notificationsEnabled: _settings.notificationsEnabled,
-      azanSoundEnabled: _settings.azanSoundEnabled,
-      calculationMethod: _settings.calculationMethod,
-      locationType: _settings.locationType,
+      notificationsEnabled: _settings!.notificationsEnabled,
+      azanSoundEnabled: _settings!.azanSoundEnabled,
+      calculationMethod: _settings!.calculationMethod,
+      locationType: _settings!.locationType,
       manualCity: _cityController.text,
       manualCountry: _countryController.text,
     );
@@ -48,57 +68,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   @override
+  void dispose() {
+    _cityController.dispose();
+  _countryController.dispose();
+  _player.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (loading) return const Center(child: CircularProgressIndicator());
+    if (loading || _settings == null) return const Center(child: CircularProgressIndicator());
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: SingleChildScrollView(
         child: Column(
           children: [
+            ListTile(
+              leading: const Icon(Icons.volume_up),
+              title: const Text('Preview Azan Sound'),
+              trailing: IconButton(
+                icon: Icon(isPlaying ? Icons.stop : Icons.play_arrow),
+                onPressed: _playAzan,
+              ),
+            ),
             SwitchListTile(
               title: const Text('Enable Notifications'),
-              value: _settings.notificationsEnabled,
+              value: _settings!.notificationsEnabled,
               onChanged: (value) {
                 setState(() => _settings =
-                    _settings.copyWith(notificationsEnabled: value));
+                    _settings!.copyWith(notificationsEnabled: value));
               },
             ),
             SwitchListTile(
               title: const Text('Enable Azan Sound'),
-              value: _settings.azanSoundEnabled,
+              value: _settings!.azanSoundEnabled,
               onChanged: (value) {
                 setState(() {
-                  _settings = _settings.copyWith(azanSoundEnabled: value);
+                  _settings = _settings!.copyWith(azanSoundEnabled: value);
                 });
               },
             ),
-            // ListTile(
-            //   title: const Text('Calculation Method'),
-            //   subtitle: Text(_settings.calculationMethod.name),
-            // ),
-            // ListTile(
-            //   title: const Text('Location Type'),
-            //   subtitle: Text(_settings.locationType.name),
-            // ),
-            // TextField(
-            //   controller: _cityController,
-            //   decoration: const InputDecoration(labelText: 'Manual City'),
-            // ),
-            // TextField(
-            //   controller: _countryController,
-            //   decoration: const InputDecoration(labelText: 'Manual Country'),
-            // ),
-            // ElevatedButton(
-            //   onPressed: _save,
-            //   child: const Text('Save Settings'),
-            // ),
-
             const SizedBox(height: 20),
             const Text("Calculation Method",
                 style: TextStyle(fontWeight: FontWeight.bold)),
             DropdownButton<CalculationMethodOption>(
-              value: _settings.calculationMethod,
+              value: _settings!.calculationMethod,
               items: CalculationMethodOption.values
                   .map((method) => DropdownMenuItem(
                         value: method,
@@ -106,14 +121,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ))
                   .toList(),
               onChanged: (val) => setState(() {
-                _settings = _settings.copyWith(calculationMethod: val!);
+                _settings = _settings!.copyWith(calculationMethod: val!);
               }),
             ),
             const SizedBox(height: 20),
             const Text("Location Type",
                 style: TextStyle(fontWeight: FontWeight.bold)),
             DropdownButton<LocationType>(
-              value: _settings.locationType,
+              value: _settings!.locationType,
               items: LocationType.values
                   .map((loc) => DropdownMenuItem(
                         value: loc,
@@ -121,10 +136,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ))
                   .toList(),
               onChanged: (val) => setState(() {
-                _settings = _settings.copyWith(locationType: val!);
+                _settings = _settings!.copyWith(locationType: val!);
               }),
             ),
-            if (_settings.locationType == LocationType.manual) ...[
+            if (_settings!.locationType == LocationType.manual) ...[
               TextField(
                 controller: _cityController,
                 decoration: const InputDecoration(labelText: "City"),

@@ -36,18 +36,22 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  late Future<Map<String, DateTime>> _prayerTimes;
+  // late Future<Map<String, DateTime>> _prayerTimes;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadPrayerTimes();
-  }
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   _loadPrayerTimes();
+  // }
 
-  Future<void> _loadPrayerTimes() async {
-    final settings = await SettingsService().loadSettings();
-    _prayerTimes = PrayerTimeService(settings: settings).getPrayerTimes();
+  Future<Map<String, DateTime>> _loadPrayerTimes() async {
     NotificationService().scheduleAzanNotifications();
+    final settings = await SettingsService().loadSettings();
+    return PrayerTimeService(settings: settings).getPrayerTimes();
+    // setState(() {
+    //   _prayerTimes = prayerTimesFuture;
+    // });
+    // NotificationService().scheduleAzanNotifications();
   }
 
   @override
@@ -80,12 +84,12 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
           ),
           body: FutureBuilder<Map<String, DateTime>>(
-            future: _prayerTimes,
+            future: _loadPrayerTimes(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
-              if (snapshot.hasError) {
+              if (snapshot.hasError || !snapshot.hasData) {
                 return const Center(child: Text('Error loading prayer times.'));
               }
               final prayerTimes = snapshot.data!;

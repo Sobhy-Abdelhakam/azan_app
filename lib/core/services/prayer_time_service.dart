@@ -18,6 +18,8 @@ class PrayerTimeService {
     } else {
       Position position = await LocationService().getUserLocation();
       coordinates = Coordinates(position.latitude, position.longitude);
+      final test = await placemarkFromCoordinates(position.latitude, position.longitude);
+      print('${test[0].locality}, ${test[0].country}');
     }
 
     CalculationParameters params = _getCalculationParameters(settings.calculationMethod);
@@ -27,6 +29,8 @@ class PrayerTimeService {
       calculationParameters: params,
       date: DateTime.now(),
     );
+
+    
 
     return {
       'Fajr': prayerTimes.fajr!,
@@ -46,7 +50,7 @@ class PrayerTimeService {
       return Coordinates(loc.latitude, loc.longitude);
     } catch (e) {
       print('Failed to get manual location, using Mecca fallback. Error: $e');
-      return Coordinates(21.4225, 39.8262); // Mecca
+      return Coordinates(29.95375640, 31.53700030); // Cairo
     }
   }
 

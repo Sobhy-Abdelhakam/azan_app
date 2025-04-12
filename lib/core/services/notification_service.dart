@@ -10,7 +10,7 @@ class NotificationService {
 
   final AwesomeNotifications _awesomeNotifications = AwesomeNotifications();
   final String azanChannelKey = 'azan_channel';
-  AppSettings? _settings;
+  AppSettings _settings = AppSettings.defaultSettings();
   void updateSettings(AppSettings settings) {
     _settings = settings;
   }
@@ -31,7 +31,7 @@ class NotificationService {
   }
 
   Future<void> scheduleANotification(String title, DateTime time) async {
-    if (_settings == null || !_settings!.notificationsEnabled) return;
+    if (!_settings.notificationsEnabled) return;
     
     // skip if time has passed
     if (time.isBefore(DateTime.now())) return;
@@ -55,13 +55,13 @@ class NotificationService {
   }
 
   Future<void> scheduleAzanNotifications() async {
-    if (_settings == null || !_settings!.notificationsEnabled) {
+    if (!_settings.notificationsEnabled) {
       print('Notifications are disabled in settings');
       return;
     }
 
     Map<String, DateTime> prayerTimes =
-        await PrayerTimeService(settings: _settings!).getPrayerTimes();
+        await PrayerTimeService(settings: _settings).getPrayerTimes();
     for (var entry in prayerTimes.entries) {
       scheduleANotification(entry.key, entry.value);
     }
@@ -79,7 +79,7 @@ class NotificationService {
       importance: NotificationImportance.High,
       defaultPrivacy: NotificationPrivacy.Public,
       locked: true,
-      playSound: _settings?.azanSoundEnabled ?? true,
+      playSound: _settings.azanSoundEnabled,
       soundSource: 'resource://raw/res_azan',
       defaultColor: Colors.green,
       ledColor: Colors.white,
